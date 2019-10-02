@@ -4,6 +4,8 @@
 import numpy as np
 import pandas as pd
 from datetime import datetime
+import numpy as np
+import matplotlib.pyplot as plt
 
 
 ## Helpers
@@ -53,8 +55,8 @@ def create_suitable_dataframe(df):
     
     # Quiero recuperar la lista de valores numericos tambien
     suitable_numerical_attributes = list(integer_data_type) + list(float_data_type)
-    print(suitable_numerical_attributes)
-    
+    #print(suitable_numerical_attributes)
+
     ### Contar la cantidad de clases en el caso de las var. categóricas y frecuencia de valores para las numéricas
     object_unique_vals = count_freq(df, object_data_type)
     int_unique_vals = count_freq(df, integer_data_type)
@@ -64,14 +66,7 @@ def create_suitable_dataframe(df):
     suitable_categorical_attributes = dict(filter(lambda x: x[1] < 100 and x[1] >= 2, object_unique_vals.items()))
     suitable_categorical_attributes = list(suitable_categorical_attributes.keys())
 
-    ### Reemplazo de clases faltantes
-    ### {N: No, Y: Yes, U: Unknown}
-    df['officrid'] = np.where(df['officrid'] == ' ', 'N', 'Y')
-    df['offshld'] = np.where(df['offshld'] == ' ', 'N', 'Y')
-    df['sector'] = np.where(df['sector'] == ' ', 'U', df['sector'])
-    df['trhsloc'] = np.where(df['trhsloc'] == ' ', 'U', df['trhsloc'])
-    df['beat'] = np.where(df['beat'] == ' ', 'U', df['beat'])
-    df['offverb'] = np.where(df['offverb'] == ' ', 'N', 'Y')
+  #
     
     meters = df['ht_feet'].astype(str) + '.' + df['ht_inch'].astype(str)
     df['meters'] = meters.apply(lambda x: float(x) * 0.3048) # Conversión de distanca a sistema metrico (non retarded)
@@ -81,12 +76,44 @@ def create_suitable_dataframe(df):
     age_individual = return_time_string(df['dob']).apply(lambda x: 2009 - x.year)
     # Filtrar solo mayores de 18 años y menores de 100
     df['age_individual'] = np.where(np.logical_and(df['age'] > 18, df['age'] < 100), df['age'], np.nan)
-    proc_df = df.dropna()
+    #df.replace(r'^\s*$', np.nan, regex=True)
+    proc_df = df
     preserve_vars = suitable_categorical_attributes + ['month', 'meters']
     proc_df = proc_df.loc[:, preserve_vars] # Agregar los atributos sintéticos al df
-    return proc_df, suitable_categorical_attributes, suitable_numerical_attributes
+    return proc_df
 
+def typeData(df):
 
+    ### Obtener columnas por tipo de dato
+    object_data_type = infer_datatype(df, 'object')
+    integer_data_type = infer_datatype(df, 'int')
+    float_data_type = infer_datatype(df, 'float')
+    
+    # Quiero recuperar la lista de valores numericos tambien
+    suitable_numerical_attributes = list(integer_data_type) + list(float_data_type)
+    #print(suitable_numerical_attributes)
+
+    ### Contar la cantidad de clases en el caso de las var. categóricas y frecuencia de valores para las numéricas
+    return object_data_type,suitable_numerical_attributes
+
+def df_get_dummies(df):
+    Lista_Atrib_elim=[]
+    frames = []
+    frames.append(df)
+    for index,colname in enumerate(df):
+        if(df[colname].dtype=='object'):
+            Lista_Atrib_elim.append(colname)
+            frames.append(pd.get_dummies(df[colname],prefix=colname, drop_first=True))
+    df=pd.concat(frames,axis=1).drop(columns=Lista_Atrib_elim)
+    return df
+
+def plot_importance(fit_model, feat_names):
+    tmp_importance = fit_model.feature_importances_
+    sort_importance = np.argsort(tmp_importance)[::-1][:10]
+    names = [feat_names[i] for i in sort_importance]
+    plt.title("Feature importance")
+    plt.barh(range(len(names)), tmp_importance[sort_importance])
+    plt.yticks(range(len(names)), names, rotation=0)
 
 
 

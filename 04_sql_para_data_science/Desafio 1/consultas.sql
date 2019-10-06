@@ -6,7 +6,7 @@ create table libro(
 	id_libro serial,
 	nombre_libro varchar(100),
 	autor varchar(50),
-	genero char(50),
+	genero varchar(50),
 	PRIMARY KEY (id_libro)
 );
 
